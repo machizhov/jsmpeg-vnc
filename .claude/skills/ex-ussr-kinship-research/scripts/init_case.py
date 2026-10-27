@@ -18,6 +18,7 @@ ASSET_FILES = {
     "search-log.csv": "search-log.csv",
     "final-report.template.md": "final-report.md",
 }
+PHOTOS_README = "photos-readme.template.md"
 
 
 def quote_yaml(value: str) -> str:
@@ -45,6 +46,13 @@ def main() -> int:
     assets_dir = script_dir.parent / "assets"
     case_dir = Path(args.case_dir).expanduser().resolve()
 
+    if case_dir == script_dir.parent or script_dir.parent in case_dir.parents:
+        print(
+            "Ошибка: храните дело вне папки навыка, например ~/kinship-cases/my-case.",
+            file=sys.stderr,
+        )
+        return 2
+
     missing = [name for name in ASSET_FILES if not (assets_dir / name).is_file()]
     if missing:
         print(
@@ -63,13 +71,19 @@ def main() -> int:
         print(
             "Ошибка: целевые файлы уже существуют: "
             + ", ".join(conflicts)
-            + ". Используйте --force только если их допустимо перезаписать.",
+            + ". Продолжайте работу с существующим делом. Для намеренного сброса шаблонов есть --force.",
             file=sys.stderr,
         )
         return 2
 
     for source_name, dest_name in ASSET_FILES.items():
         shutil.copyfile(assets_dir / source_name, case_dir / dest_name)
+
+    photos_dir = case_dir / "photos"
+    photos_dir.mkdir(exist_ok=True)
+    photos_readme = photos_dir / "README.md"
+    if not photos_readme.exists() and (assets_dir / PHOTOS_README).is_file():
+        shutil.copyfile(assets_dir / PHOTOS_README, photos_readme)
 
     intake_path = case_dir / "case-intake.yaml"
     text = intake_path.read_text(encoding="utf-8")
@@ -92,6 +106,7 @@ def main() -> int:
     print(f"Дело создано: {case_dir}")
     for dest_name in ASSET_FILES.values():
         print(f"- {dest_name}")
+    print("- photos/README.md")
     return 0
 
 

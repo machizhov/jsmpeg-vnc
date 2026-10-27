@@ -4,6 +4,8 @@
 
 **An evidence-first genealogy skill for AI agents (Codex, Claude Code and other Agent Skills runtimes).** It turns an agent into a careful family-history researcher for the former USSR, the Soviet Union and the Russian Empire. The agent reads church books and civil records, military, deportation and repression files, and unindexed archive scans. It keeps every find traceable, separates records from interpretation and says plainly what is proven and what is not.
 
+Coverage includes all 15 former Soviet republics: Russia, Ukraine, Belarus, Moldova, Estonia, Latvia, Lithuania, Georgia, Armenia, Azerbaijan, Kazakhstan, Kyrgyzstan, Tajikistan, Turkmenistan and Uzbekistan. Archives are chosen by the event's historical jurisdiction and current record custodian; a regional example does not replace local research.
+
 The skill's instructions are written in Russian, but **the agent talks to you in your language**: English, Ukrainian, Russian, Polish, German and so on. It quotes sources in their original spelling with a translation, and builds search queries in the languages of the records.
 
 ---
@@ -17,40 +19,13 @@ The skill's instructions are written in Russian, but **the agent talks to you in
 - **Source strategy.** Originals first, then official catalogs, indexes, published document collections, and only then trees and forums as leads.
 - **Evidence protocol.** Claims get explainable statuses, not percentages: `hypothesis`, `single-source`, `corroborated`, `strongly-corroborated`, `contradicted`, `unresolved`. Copies and mirrors of one record share an `independence_group`, so they never count as independent proof.
 - **Identity resolution.** Namesakes stay separate `person_id`s until distinguishing evidence appears: house number, parents, godparents, exact birth date or military unit.
-- **Audit script.** It checks referential integrity and flags weak corroboration before you write conclusions.
+- **Audit script.** It checks referential integrity and flags weak corroboration before you write conclusions. An independence group counts only when a cited artifact belongs to it, so corroboration cannot be declared into existence. It also checks the final report: every cited ID must exist in the registers and every status must match them. A summary shows what is still uncorroborated or marked illegible.
+- **Institutional requests.** Draft and, when authorized, send focused requests to archives, libraries, universities and museums using available email or official web tools. If needed, offer a supported mail integration or a ready-to-send letter. Record the outcome, avoid duplicate sends and treat replies as evidence. See [correspondence guidance](references/correspondence.md).
 - **Final report.** Every relationship is laid out edge by edge, with contradictions, failed searches and concrete next steps.
+- **Targeted indexed-record research.** Find relevant FamilySearch books by place or DGS through an existing lawful browser session, view specific records, and retain only evidence fragments permitted by the source. Local helpers search relatives, witnesses and name variants in saved fragments, preserving their context and file checksums. [Workflow and coverage limits](references/familysearch-indexes.md).
+- **WWI source search.** Search GWAR reports, hospital and award records by person or locality, then locate the source image. [Workflow](references/ww1-search.md). Both helpers feed the existing artifact register and search log; they do not establish identities or kinship automatically.
 
-## Field lessons (new in 1.1.0)
-
-Version 1.1.0 adds `references/field-lessons.md`, distilled from a real multi-week research case. Personal data from that case is not included.
-
-- **Unindexed scans.** Most ex-USSR church books on FamilySearch are images only. The file shows how to find the right film (including archive-reference-to-film mapping), map it, skim the key column and zoom on candidates. It also covers what to log.
-- **Reading cues that link records.**
-  - An exact birth date in a marriage register can match a baptism day for day.
-  - House numbers persist for decades.
-  - Stillbirths are listed among births.
-  - Patronymic formulas: Ukrainian possessive forms, Romanian *fiul lui / n.*, Church Slavonic, German.
-  - Clerk name swaps, such as Grigorie and Gheorghe.
-- **Marginal annotations.** Later Soviet-era notes on old registers show when a certificate was issued, which is evidence that the person or their family was alive and requesting documents.
-- **Repression and deportation records.**
-  - Published document collections and their typical contents.
-  - How rehabilitation books group people.
-  - How to read a "basis" column such as a 25-year sentence.
-  - Why a family is linked to a deportation operation, not to the local incident used to justify it.
-  - How to draft an archive request.
-- **Military databases.** WWII loss records (survivors are absent), "surname nests" built from birthplace clusters, and which portals put up CAPTCHAs. Austro-Hungarian WWI casualty lists help for Galicia and Bukovina.
-- **Places that no longer exist.** Liquidated hamlets, redrawn districts, and the difference between "born in" and "grew up in". Also archives in occupied or war-damaged areas.
-- **Family materials as sources.** Passports, oral-history recordings with timestamps, and the user's own notes, all tagged by source type.
-- **Browser technique.** Deep-zoom tile crops, composite column views for fast skimming, keeping long jobs in their own tab, polite crawling and retries.
-- **Knowing when to stop.** When public sources are exhausted, the agent says so once, prepares questions for living relatives and request drafts for archives, and does not invent or loop.
-
-Also in 1.1.0:
-
-- The agent replies in the user's language; the intake template defaults to `requested_output_language: auto`.
-- The skill description is bilingual, so it triggers for English-speaking users too.
-- **CAPTCHAs are handed to a human.** The agent never solves or bypasses them, and the user signs in to sites themselves.
-- More seed sources, each with a reliability class and role.
-- New eval cases: language matching, unindexed scans, house-number identity, birthplace conflicts, exhausted sources, repression lists.
+Release history: [changelog](references/changelog.md).
 
 ## Install
 
@@ -64,23 +39,32 @@ git clone https://github.com/DenisSergeevitch/ex-ussr-kinship-research ~/.codex/
 git clone https://github.com/DenisSergeevitch/ex-ussr-kinship-research ~/.claude/skills/ex-ussr-kinship-research
 ```
 
-For a single project, put the folder in `.claude/skills/` inside the repository. The scripts need only Python 3 and the standard library.
+For a single project, put the folder in `.claude/skills/` inside the repository. The scripts need only Python 3 and the standard library; `build_pdf.py` also needs a Chromium-based browser.
 
 ## Use
 
-Just describe the family question; the skill triggers on genealogy requests. For example:
+Describe the family question. The agent works from available information and continues while questions or access requests await a reply. For example:
 
 - *"My great-grandfather was exiled to Kazakhstan in the 1930s. Help me find his parents in church records."*
 - *"Here are scans of a marriage certificate and a soldier card. Check whether they are the same person and build the evidence chain."*
 - *"Find the parish and the right FamilySearch film for a village in Podolia in the 1890s and read the births for the surname X."*
 
-The agent will set up a case folder:
+Keep private case data outside the skill's Git checkout. From the skill folder:
 
 ```bash
-python scripts/init_case.py --case-dir ./my-case --research-question "Who were Maria's parents?" --subject-label "Maria"
-python scripts/hash_artifact.py ./scans/marriage-1902.jpg     # SHA-256 for every saved artifact
-python scripts/audit_evidence.py --case-dir ./my-case          # check registers before the final report
+python scripts/init_case.py --case-dir ~/kinship-cases/my-case --research-question "Who were Maria's parents?" --subject-label "Maria"
+python scripts/hash_artifact.py ~/kinship-cases/my-case/scans/marriage-1902.jpg   # SHA-256 for every saved artifact
+python scripts/audit_evidence.py --case-dir ~/kinship-cases/my-case             # check registers before the final report
+python scripts/build_pdf.py --html ~/kinship-cases/my-case/pdf-source/report.html --out ~/kinship-cases/my-case/report.pdf
 ```
+
+`init_case.py` refuses to create a case inside the skill folder, including with
+`--force`. Git ignores common legacy case-folder names as an additional safeguard;
+check staged files before contributing, especially if moving an existing case.
+
+`build_pdf.py` needs Chrome, Chromium or Edge installed (or `CHROME_PATH`). With `--png-dir` it also renders pages to PNG for review if `pypdfium2` is available.
+
+Use static HTML with local or embedded images. Active HTML and network image sources are rejected; source links remain clickable. A failed render preserves any existing output PDF.
 
 ## Repository layout
 
@@ -88,28 +72,39 @@ python scripts/audit_evidence.py --case-dir ./my-case          # check registers
 SKILL.md                         main instructions (workflow, hard rules, language policy)
 references/
   source-strategy.md             source hierarchy, query patterns, catalogs, archive requests
+  correspondence.md              recipients, mail integration, authorized sending and replies
   evidence-protocol.md           artifact assessment, statuses, identity resolution, conflicts
   ex-ussr-locale-guide.md        jurisdictions, name variants, calendars, record types by period
-  browser-and-captcha.md         browsing, sign-in, CAPTCHA hand-off, rate limits
+  browser-and-captcha.md         browsing, sign-in, one CAPTCHA attempt and hand-off, rate limits
   privacy-and-safety.md          living people, minors, DNA, sensitive findings
   seed-sources.md                curated starting resources with reliability classes
-  field-lessons.md               practical lessons from a real case (new in 1.1.0)
-assets/                          case intake, CSV registers, final report template
-scripts/                         init_case.py, hash_artifact.py, audit_evidence.py
+  field-lessons.md               practical lessons from a real case
+  changelog.md                   release history
+  photo-search.md                finding, identifying, dating and storing photos
+  habsburg-galicia-bukovina.md   Galicia and Bukovina under the Habsburgs and after
+  familysearch-indexes.md       targeted browser research, permitted local snapshots and coverage
+  ww1-search.md                 GWAR WWI person/locality search and source-image locators
+assets/                          case intake, CSV registers, final report template,
+                                 photos README template, readable PDF template (report-pdf.template.html)
+scripts/                         init_case.py, hash_artifact.py, audit_evidence.py, build_pdf.py
+                                 familysearch.py, gwar.py, register_search.py and shared local analysis modules
 evals/discovery-and-logic.yaml   trigger and reasoning test cases
+tests/                           unit tests (python3 -m unittest discover -s tests)
 ```
 
 ## Responsible use
 
 - **Family history, not surveillance.** The skill refuses to look up current addresses, phones or accounts of living people, and it minimizes their data in reports.
-- **No bypassing.** No CAPTCHA solving, no paywall, geo-block or rate-limit evasion, no leaked databases. Sign-ins are done by the user.
+- **Access checks.** The agent may try an actual CAPTCHA once through normal controls in its internal browser when supported and allowed. If user action is needed, it opens the relevant tab when possible and provides the URL and required action; sign-ins are done by the user. No external solvers, protection bypass, paywall, geo-block or rate-limit evasion, or leaked databases. See [browser guidance](references/browser-and-captcha.md).
 - **No uploads of your documents or DNA data** to third-party services without your explicit consent.
 - **Sensitive findings** (deportation, repression, adoption, DNA surprises) are reported neutrally and only as far as the question requires.
-- **Archive access rules change.** Always check the current official procedure before sending a request; the skill only drafts requests, it does not send them.
+- **Authorized correspondence.** The skill can send institutional requests through available tools when the user has authorized them; it does not ask again for an already authorized send. Connecting a mailbox alone does not authorize sending, attachments or paid services. Verify the current official contact and procedure, and keep credentials and private case correspondence outside the skill repository.
 
 ## Contributing
 
-New sources are welcome. Add them to `references/seed-sources.md` with these fields: owner, jurisdiction, collection type, originals or index, stable IDs, access, restrictions, typical errors, date last checked. Please keep personal data out of examples.
+New sources are welcome in `references/seed-sources.md`. Record verified owner, jurisdiction, collection, provenance, IDs, access, restrictions and check date where known; mark gaps instead of guessing. Keep personal data out of examples.
+
+Source-search helpers use Python's standard library and the existing case registers. Run `python3 -m unittest discover -s tests` to check local parsing, GWAR checkpoints, access failures, unresolved coverage and evidence registration against synthetic data. FamilySearch discovery and targeted viewing use the existing lawful browser session; its Python helpers analyze saved fragments. Keep private research files outside this checkout.
 
 ## License
 
